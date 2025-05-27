@@ -1,0 +1,7 @@
+This project was a part of my ECEGR 2220 course, Microprocessor design. The projects purpose was to create a simple verilog processor with 3 major instructions. The instructions were to add & subtract, to load a register with an input variable, and to 
+
+This project and class was very beneficial to me. I learned about the computer architecture overall during my course, this project specifically hammered home the CPU architecture, what instruction sets are, how a control unit functions at its core, and many other concepts.
+
+On top of the conceptual ideas, it also exposed me to hardware description langauges like Verilog and VHDL. Embedded systems, System-on-Chips, FPGAs are all things i've grown an interest in and im glad I had access to this class.
+
+
