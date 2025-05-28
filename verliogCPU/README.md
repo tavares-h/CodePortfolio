@@ -21,18 +21,18 @@ The foundation of this implementation is through a finite state machine / state 
 
 
 These modules define the response to the steps in the main modules FSM:
-	1. Multiplexor module
-		This module decide the register selection, determining what register gets loaded on to the bus wire.
-	2. ALU module
-		This module performed the subtraction and addition on specified registers, and stores the result in its own temporary register.
-	3. Decode module
-		This module determines what registers are specified by the input. The registers here get used throughout the system, like in the FSM.
-	4. Regi module
-		Defines the behavior of registers in this system. for instance, each has an enable bit, deciding whether to read in from the bus or not, etc.
-		The registers are 8 bits in length.
-	5. IRregi module
-		This module defines the behavior of the register that holds the instructions. It is seperate declaration because I decided the ISA should 9 bits.
-		There are 3 bits for each register and 3 bits for the instruction opcode. 
-		This allows 2 selections from the 8 registers and 8 possible instructions.
+1. Multiplexor module
+	This module decide the register selection, determining what register gets loaded on to the bus wire.
+2. ALU module
+	This module performed the subtraction and addition on specified registers, and stores the result in its own temporary register.
+3. Decode module
+	This module determines what registers are specified by the input. The registers here get used throughout the system, like in the FSM.	
+4. Regi module
+	Defines the behavior of registers in this system. for instance, each has an enable bit, deciding whether to read in from the bus or not, etc.
+	The registers are 8 bits in length.
+5. IRregi module
+	This module defines the behavior of the register that holds the instructions. It is seperate declaration because I decided the ISA should 9 bits.
+	There are 3 bits for each register and 3 bits for the instruction opcode. 
+	This allows 2 selections from the 8 registers and 8 possible instructions.
 
 The most important component is the clock, this determines when things actually process. Most of the system is connected and updated on the positive edge of the clock. Because everything is connected to the clock at all times, this is why its important for enable bits, to specify what really gets updated on this clock signal, this is how we control the ordering of operations. This implementation had a manual clock input representing a button press.
