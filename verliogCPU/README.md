@@ -8,16 +8,10 @@ On top of the conceptual ideas, the class also exposed me to hardware descriptio
 Embedded systems, System-on-Chips, FPGAs are all things i've grown an interest in and im grateful this class gave me these related experiences.
 
 # PROJECT NOTES
-The foundation of this implementation is through a finite state machine / state table.
-	The FSM determines the state based on the entered instruction opcode.
-	The FSM has defined behavior for each instruction due to their varying length in steps/cycles.
-	For example, the addition instruction requires 3 steps/cycles to complete the instruction, where as moving an immediate value into register is one.
-	So the FSM sees what instruction it is and goes through the defined steps.
-	At each step a case statement is used to correlate the instruction to that part of the process.
-	For example, the first step of the FSM is to enable reading for the IR registor from the bus.
-		then it moves to the next state (step 1 of every instruction), from here the case statement determines the instruction.
-		if the instruction is move immediate, then the first step is to open up the bus and enable the choice register to read in.
-	There are multiple cycles for certain instructions to account for the prerequisite steps such as moving data around and storing the results before moving them back to a register, so on.
+The foundation of this implementation is through a finite state machine / state table. The FSM determines the state based on the entered instruction opcode. Each instruction has predefined behavior due to their varying length in steps/cycles. For example, the addition instruction requires 3 steps/cycles to complete the instruction, where as moving an immediate value into register is one.
+
+Walkthrough:
+The FSM sees what instruction it is and goes through the defined steps. At each step a case statement, is used to correlate the instruction to the current step. For example, step zero of the FSM is to enable reading in the instruction to the IR registor. Then it moves to the next state (step 1 of every instruction), from here the case statement determines the instruction again. If the instruction is move immediate, then the first step is to open up the bus and enable the selected register to read in the value. There are multiple cycles for certain instructions to account for the prerequisite steps such as moving data around and storing the results before moving them back to a register, so on.
 
 
 These modules define the response to the steps in the main modules FSM:
