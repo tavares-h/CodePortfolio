@@ -1,3 +1,4 @@
+PERSONAL NOTE
 This project was a part of my ECEGR 2220 course, Microprocessor design. The projects purpose was to create a simple verilog processor with 3 major instructions. The instructions were to add & subtract, to load a register with a immediate input value, and to move one register value to a different register.
 
 The project and the class were very important to my understanding of computer architecture. Throughout the course we covered the foundation of computer architecture, and this project gave us insight on the implementation of CPU architecture. Learning about what instruction sets & cycles are, how a control unit works, etc.
@@ -7,3 +8,31 @@ On top of the conceptual ideas, the class also exposed me to hardware descriptio
 Embedded systems, System-on-Chips, FPGAs are all things i've grown an interest in and im grateful this class gave me these related experiences.
 
 
+The foundation of this implementation is through a finite state machine / state table.
+	The FSM determines the state based on the entered instruction opcode.
+	The FSM has defined behavior for each instruction due to their varying length in steps/cycles.
+	For example, the addition instruction requires 3 steps/cycles to complete the instruction, where as moving an immediate value into register is one.
+	So the FSM sees what instruction it is and goes through the defined steps.
+	At each step a case statement is used to correlate the instruction to that part of the process.
+	For example, the first step of the FSM is to enable reading for the IR registor from the bus.
+		then it moves to the next state (step 1 of every instruction), from here the case statement determines the instruction.
+		if the instruction is move immediate, then the first step is to open up the bus and enable the choice register to read in.
+	There are multiple cycles for certain instructions to account for the prerequisite steps such as moving data around and storing the results before moving them back to a register, so on.
+
+
+These modules define the response to the steps in the main modules FSM:
+	1. Multiplexor module
+		This module decide the register selection, determining what register gets loaded on to the bus wire.
+	2. ALU module
+		This module performed the subtraction and addition on specified registers, and stores the result in its own temporary register.
+	3. Decode module
+		This module determines what registers are specified by the input. The registers here get used throughout the system, like in the FSM.
+	4. Regi module
+		Defines the behavior of registers in this system. for instance, each has an enable bit, deciding whether to read in from the bus or not, etc.
+		The registers are 8 bits in length.
+	5. IRregi module
+		This module defines the behavior of the register that holds the instructions. It is seperate declaration because I decided the ISA should 9 bits.
+		There are 3 bits for each register and 3 bits for the instruction opcode. 
+		This allows 2 selections from the 8 registers and 8 possible instructions.
+
+The most important component is the clock, this determines when things actually process. Most of the system is connected and updated on the positive edge of the clock. Because everything is connected to the clock at all times, this is why its important for enable bits, to specify what really gets updated on this clock signal, this is how we control the ordering of operations. This implementation had a manual clock input representing a button press.
