@@ -1,4 +1,4 @@
-PERSONAL NOTE
+# PERSONAL NOTES
 This project was a part of my ECEGR 2220 course, Microprocessor design. The projects purpose was to create a simple verilog processor with 3 major instructions. The instructions were to add & subtract, to load a register with a immediate input value, and to move one register value to a different register.
 
 The project and the class were very important to my understanding of computer architecture. Throughout the course we covered the foundation of computer architecture, and this project gave us insight on the implementation of CPU architecture. Learning about what instruction sets & cycles are, how a control unit works, etc.
@@ -7,7 +7,7 @@ On top of the conceptual ideas, the class also exposed me to hardware descriptio
 
 Embedded systems, System-on-Chips, FPGAs are all things i've grown an interest in and im grateful this class gave me these related experiences.
 
-
+# PROJECT NOTES
 The foundation of this implementation is through a finite state machine / state table.
 	The FSM determines the state based on the entered instruction opcode.
 	The FSM has defined behavior for each instruction due to their varying length in steps/cycles.
