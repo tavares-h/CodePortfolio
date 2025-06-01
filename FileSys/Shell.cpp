@@ -34,14 +34,14 @@ void Shell::mountNFS(string fs_loc) {
   conn.ai_family = AF_UNSPEC;
   conn.ai_socktype = SOCK_STREAM;
 
-  int status;
-  if ((status = getaddrinfo(host, port, &conn, &servinfo)) < 1) {
-    cerr << "Error" << endl;
+  if ((getaddrinfo(host, port, &conn, &servinfo)) != 0) {
+    cerr << "status" << endl;
     exit(-1);
   }
 
   for (p = servinfo; p != NULL; p = p->ai_next) {
-    if ((cs_sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+    if ((cs_sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==
+        -1) {
       perror("create socket");
       continue;
     }
@@ -49,6 +49,7 @@ void Shell::mountNFS(string fs_loc) {
     if (connect(cs_sock, p->ai_addr, p->ai_addrlen) != 0) {
       perror("connect");
       close(cs_sock);
+      freeaddrinfo(servinfo);
       continue;
     }
     is_mounted = true;
@@ -67,21 +68,29 @@ void Shell::unmountNFS() {
 // Remote procedure call on mkdir
 void Shell::mkdir_rpc(string dname) {
   // to implement
+  // mkdir dname
+  string cmd = "mkdir " + dname;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on cd
 void Shell::cd_rpc(string dname) {
   // to implement
+  string cmd = "cd " + dname;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on home
 void Shell::home_rpc() {
   // to implement
+  write_out(cs_sock, "home");
 }
 
 // Remote procedure call on rmdir
 void Shell::rmdir_rpc(string dname) {
   // to implement
+	string cmd = "rmdir " + dname;
+	write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on ls
@@ -283,3 +292,37 @@ pair<string, string> input_parse(string &fs_loc) {
   string port_s = fs_loc.substr(col + 1);
   return {host_s, port_s};
 }
+
+void write_out(int sock, string cmd) {
+  char *buf = (char *)malloc(sizeof(cmd) + 1);
+  strcpy(buf, cmd.c_str());
+  size_t buf_size = sizeof(buf);
+  size_t bytes_sent{0};
+  int n;
+  while (bytes_sent < buf_size) {
+    if ((n = send(sock, buf + bytes_sent, buf_size - bytes_sent, 0)) == -1) {
+      perror("sent");
+      break;
+    } else if (n == 0) {
+      perror("connection closed");
+    }
+    bytes_sent += n;
+  }
+	free(buf);
+}
+/*
+void write_out(int sock, char *buf, size_t buf_size) {
+  size_t bytes_sent{0};
+  int n;
+        buf[buf_size] = '\0';
+  while (bytes_sent < buf_size) {
+    if ((n = send(sock, buf + bytes_sent, buf_size - bytes_sent, 0)) == -1) {
+      perror("receive");
+      break;
+    } else if (n == 0) {
+      perror("connection closed");
+    }
+    bytes_sent += n;
+  }
+}
+*/

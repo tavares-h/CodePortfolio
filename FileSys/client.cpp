@@ -11,10 +11,10 @@ int main(int argc, char **argv) {
   Shell shell;
   if (argc == 2) {
     shell.mountNFS(string(argv[1]));
-    // shell.run();
+    shell.run();
   } else if (argc == 4 && strcmp(argv[1], "-s") == 0) {
     shell.mountNFS(string(argv[3]));
-    // shell.run_script(argv[2]);
+    shell.run_script(argv[2]);
   } else {
     cerr << "Invalid command line" << endl;
     cerr << "Usage (one of the following): " << endl;

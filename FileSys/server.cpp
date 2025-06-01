@@ -7,6 +7,7 @@
 #include <iterator>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -58,44 +59,110 @@ int main(int argc, char *argv[]) {
   // system operation which returns the results or error messages back to
   // the client until the client closes the TCP connection.
 
-  char* buf = (char*) malloc(1024);
+  char *buf = (char *)malloc(1024);
+  Command cmd{"", "", ""};
   size_t buf_size = sizeof(buf);
   socklen_t addr_len = p->ai_addrlen;
   int new_sock = accept(sock, p->ai_addr, &addr_len);
 
   if (new_sock < 0) {
     perror("accept");
-	}
+  }
 
-	bool close = true;
+  bool close = true;
   while (close) {
     read_in(new_sock, buf, buf_size);
+    cmd = get_cmd();
+    execute_cmd(cmd);
   }
 
   // close the listening socket
 
   // unmout the file system
-  // fs.unmount();
+  fs.unmount();
 
   return 0;
 }
 
 void read_in(int sock, char *buf, size_t buf_size) {
-  size_t bytes_sent{0};
+  size_t bytes_recv{0};
   int n;
-  while (bytes_sent < buf_size) {
-    if (n = recv(sock, buf + bytes_sent, buf_size - bytes_sent, 0) == -1) {
+  while (bytes_recv < buf_size) {
+    if ((n = recv(sock, buf + bytes_recv, buf_size - bytes_recv, 0)) == -1) {
       perror("receive");
       break;
     } else if (n == 0) {
       perror("connection closed");
     }
-    bytes_sent += n;
-    if (bytes_sent < buf_size) {
-      buf[bytes_sent] = '\0';
+		bytes_recv += n;
+    if (buf[bytes_recv] == '\0') {
+      break;
     }
   }
 }
+
+struct Command get_cmd(const char *buf) {
+  string cmd = string(buf);
+  // grab each of the tokens (if they exist)
+  struct Command command;
+  istringstream ss(cmd);
+  int num_tokens = 0;
+  if (ss >> command.name) {
+    num_tokens++;
+    if (ss >> command.file_name) {
+      num_tokens++;
+      if (ss >> command.append_data) {
+        num_tokens++;
+        string junk;
+        if (ss >> junk) {
+          num_tokens++;
+        }
+      }
+    }
+  }
+  return command;
+}
+
+void execute_cmd(struct Command command, FileSys fs) {
+  //
+  // look for the matching command
+  if (command.name == "") {
+  } else if (command.name == "mkdir") {
+		command.file_name = command.file_name.c_str();
+    fs.mkdir(command.file_name);
+  } else if (command.name == "cd") {
+    cd_rpc(command.file_name);
+  } else if (command.name == "home") {
+    home_rpc();
+  } else if (command.name == "rmdir") {
+    rmdir_rpc(command.file_name);
+  } else if (command.name == "ls") {
+    ls_rpc();
+  } else if (command.name == "create") {
+    create_rpc(command.file_name);
+  } else if (command.name == "append") {
+    append_rpc(command.file_name, command.append_data);
+  } else if (command.name == "cat") {
+    cat_rpc(command.file_name);
+  } else if (command.name == "head") {
+    errno = 0;
+    unsigned long n = strtoul(command.append_data.c_str(), NULL, 0);
+    if (0 == errno) {
+      head_rpc(command.file_name, n);
+    } else {
+      cerr << "Invalid command line: " << command.append_data;
+      cerr << " is not a valid number of bytes" << endl;
+      return false;
+    }
+  } else if (command.name == "rm") {
+    rm_rpc(command.file_name);
+  } else if (command.name == "stat") {
+    stat_rpc(command.file_name);
+  } else if (command.name == "quit") {
+    return true;
+  }
+}
+
 /*
 client
 read in command from CLI
