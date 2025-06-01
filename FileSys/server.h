@@ -7,12 +7,12 @@ void read_in(int sock, char* buf, size_t buf_size);
 
 struct Command
 {
-	std::string name;		// name of command
-	std::string file_name;		// name of file
-	std::string append_data;	// append data (append only)
+	char* name;		// name of command
+	char* file_name;		// name of file
+	char* append_data;	// append data (append only)
 };
 
-struct Command get_cmd();
+struct Command get_cmd(char* buf);
 void execute_cmd(struct Command cmd);
 
 #endif

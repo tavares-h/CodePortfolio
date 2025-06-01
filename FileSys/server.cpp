@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
   // the client until the client closes the TCP connection.
 
   char *buf = (char *)malloc(1024);
-  Command cmd{"", "", ""};
+  Command cmd;
   size_t buf_size = sizeof(buf);
   socklen_t addr_len = p->ai_addrlen;
   int new_sock = accept(sock, p->ai_addr, &addr_len);
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
   bool close = true;
   while (close) {
     read_in(new_sock, buf, buf_size);
-    cmd = get_cmd();
+    cmd = get_cmd(buf);
     execute_cmd(cmd);
   }
 
@@ -94,41 +94,36 @@ void read_in(int sock, char *buf, size_t buf_size) {
     } else if (n == 0) {
       perror("connection closed");
     }
-		bytes_recv += n;
+    bytes_recv += n;
     if (buf[bytes_recv] == '\0') {
       break;
     }
   }
 }
 
-struct Command get_cmd(const char *buf) {
-  string cmd = string(buf);
-  // grab each of the tokens (if they exist)
-  struct Command command;
-  istringstream ss(cmd);
-  int num_tokens = 0;
-  if (ss >> command.name) {
-    num_tokens++;
-    if (ss >> command.file_name) {
-      num_tokens++;
-      if (ss >> command.append_data) {
-        num_tokens++;
-        string junk;
-        if (ss >> junk) {
-          num_tokens++;
-        }
-      }
-    }
-  }
-  return command;
+struct Command get_cmd(char *buf) {
+	Command temp;
+	char *buf_temp = strdup(buf);
+	temp.name = strdup(strtok(buf_temp, " "));
+	temp.file_name = strdup(strtok(nullptr, " "));
+	temp.append_data = strdup(strtok(nullptr, " "));
+	// check what the first arg is
+	// depending on what the first are is i go to a certain command
+	// depending on the command i may need to send arguments
+	free(buf_temp);
+	return temp;
 }
 
+void execute_cmd(struct Command cmd, FileSys fs) {
+
+}
+/*
 void execute_cmd(struct Command command, FileSys fs) {
   //
   // look for the matching command
   if (command.name == "") {
   } else if (command.name == "mkdir") {
-		command.file_name = command.file_name.c_str();
+                command.file_name = command.file_name.c_str();
     fs.mkdir(command.file_name);
   } else if (command.name == "cd") {
     cd_rpc(command.file_name);
@@ -162,6 +157,7 @@ void execute_cmd(struct Command command, FileSys fs) {
     return true;
   }
 }
+*/
 
 /*
 client
