@@ -1,3 +1,6 @@
+g++ server.cpp FileSys.cpp BasicFileSys.cpp Disk.cpp -o server
+
+
 //// Each team member's name and contributions ////////////
 Team member #1: xxx
 Contributions:

@@ -11,6 +11,7 @@
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -23,11 +24,11 @@ int main(int argc, char *argv[]) {
 
   addrinfo conn{}, *servinfo, *p;
   memset(&conn, 0, sizeof(conn));
-  conn.ai_family = AF_UNSPEC;
+  conn.ai_family = AF_INET;
   conn.ai_socktype = SOCK_STREAM;
   int status, sock;
 
-  if ((status = getaddrinfo("cs1.seattleu.edu", argv[1], &conn, &servinfo)) !=
+  if ((status = getaddrinfo(nullptr, argv[1], &conn, &servinfo)) !=
       0) {
     cerr << "status" << endl;
     exit(-1);
@@ -51,135 +52,116 @@ int main(int argc, char *argv[]) {
   }
 
   // mount the file system
-  FileSys fs;
-  fs.mount(sock); // assume that sock is the new socket created
+	// assume that sock is the new socket created
   //  for a TCP connection between the client and the server.
 
   // loop: get the command from the client and invoke the file
   // system operation which returns the results or error messages back to
   // the client until the client closes the TCP connection.
 
-  char *buf = (char *)malloc(1024);
+  size_t buf_size = 1024;
+  char *buf = (char *) malloc(buf_size);
   Command cmd;
-  size_t buf_size = sizeof(buf);
-  socklen_t addr_len = p->ai_addrlen;
-  int new_sock = accept(sock, p->ai_addr, &addr_len);
 
-  if (new_sock < 0) {
-    perror("accept");
-  }
+	sockaddr_storage client_addr;
+  socklen_t addr_len = sizeof(client_addr);
+	int new_sock = accept(sock, (sockaddr*) &client_addr, &addr_len);
 
-  bool close = true;
-  while (close) {
-    read_in(new_sock, buf, buf_size);
-    cmd = get_cmd(buf);
-    execute_cmd(cmd);
+	
+	if (new_sock < 0) {
+		perror("accept");
+		exit(EXIT_FAILURE);
+	}
+
+	FileSys fs;
+	fs.mount(new_sock);
+	
+	size_t byte_recv {0};
+  bool finished = false;
+  while (!finished) {
+    memset(buf, 0, buf_size);
+    if ((byte_recv = read_in(new_sock, buf, buf_size)) <= 0) {
+      finished = true;
+    } else {
+      cmd = get_cmd(buf);
+      execute_cmd(cmd, fs);
+    }
+
+    if (cmd.name) {free(cmd.name);}
+    if (cmd.file_name) {free(cmd.file_name);}
+		if (cmd.append_data) {free(cmd.append_data);}
   }
 
   // close the listening socket
-
+  close(new_sock);
+  free(buf);
   // unmout the file system
   fs.unmount();
-
+	close(sock);
   return 0;
 }
 
-void read_in(int sock, char *buf, size_t buf_size) {
+ssize_t read_in(int sock, char *buf, size_t buf_size) {
   size_t bytes_recv{0};
   int n;
-  while (bytes_recv < buf_size) {
-    if ((n = recv(sock, buf + bytes_recv, buf_size - bytes_recv, 0)) == -1) {
+  while (bytes_recv < buf_size - 1) {
+    if ((n = recv(sock, buf + bytes_recv, buf_size - bytes_recv - 1, 0)) <= 0) {
       perror("receive");
-      break;
+      return -1;
     } else if (n == 0) {
       perror("connection closed");
+			break;
     }
     bytes_recv += n;
     if (buf[bytes_recv] == '\0') {
       break;
     }
   }
+  buf[bytes_recv] = '\0';
+  return bytes_recv;
 }
 
 struct Command get_cmd(char *buf) {
-	Command temp;
-	char *buf_temp = strdup(buf);
-	temp.name = strdup(strtok(buf_temp, " "));
-	temp.file_name = strdup(strtok(nullptr, " "));
-	temp.append_data = strdup(strtok(nullptr, " "));
-	// check what the first arg is
-	// depending on what the first are is i go to a certain command
-	// depending on the command i may need to send arguments
-	free(buf_temp);
-	return temp;
+  Command temp;
+  char *buf_temp = strdup(buf);
+  temp.name = strdup(strtok(buf_temp, " "));
+  temp.file_name = strdup(strtok(nullptr, " "));
+  temp.append_data = strdup(strtok(nullptr, " "));
+  // check what the first arg is
+  // depending on what the first are is i go to a certain command
+  // depending on the command i may need to send arguments
+  free(buf_temp);
+  return temp;
 }
 
-void execute_cmd(struct Command cmd, FileSys fs) {
+void execute_cmd(struct Command cmd, FileSys &fs) {
+  if (cmd.name == nullptr) {
+    perror("command");
+    return;
+  }
 
-}
-/*
-void execute_cmd(struct Command command, FileSys fs) {
-  //
-  // look for the matching command
-  if (command.name == "") {
-  } else if (command.name == "mkdir") {
-                command.file_name = command.file_name.c_str();
-    fs.mkdir(command.file_name);
-  } else if (command.name == "cd") {
-    cd_rpc(command.file_name);
-  } else if (command.name == "home") {
-    home_rpc();
-  } else if (command.name == "rmdir") {
-    rmdir_rpc(command.file_name);
-  } else if (command.name == "ls") {
-    ls_rpc();
-  } else if (command.name == "create") {
-    create_rpc(command.file_name);
-  } else if (command.name == "append") {
-    append_rpc(command.file_name, command.append_data);
-  } else if (command.name == "cat") {
-    cat_rpc(command.file_name);
-  } else if (command.name == "head") {
-    errno = 0;
-    unsigned long n = strtoul(command.append_data.c_str(), NULL, 0);
-    if (0 == errno) {
-      head_rpc(command.file_name, n);
-    } else {
-      cerr << "Invalid command line: " << command.append_data;
-      cerr << " is not a valid number of bytes" << endl;
-      return false;
+  if (strcmp(cmd.name, "mkdir") == 0) {
+    fs.mkdir(cmd.file_name);
+  } else if (strcmp(cmd.name, "ls") == 0) {
+    fs.ls();
+  } else if (strcmp(cmd.name, "rmdir") == 0) {
+    fs.rmdir(cmd.file_name);
+  } else if (strcmp(cmd.name, "create") == 0) {
+    fs.create(cmd.file_name);
+  } else if (strcmp(cmd.name, "append") == 0) {
+    fs.append(cmd.file_name, cmd.append_data);
+  } else if (strcmp(cmd.name, "cd") == 0) {
+    fs.cd(cmd.file_name);
+  } else if (strcmp(cmd.name, "cat") == 0) {
+    fs.cat(cmd.file_name);
+  } else if (strcmp(cmd.name, "head") == 0) {
+    if (cmd.append_data) {
+      int n = atoi(cmd.append_data);
+      fs.head(cmd.file_name, n);
     }
-  } else if (command.name == "rm") {
-    rm_rpc(command.file_name);
-  } else if (command.name == "stat") {
-    stat_rpc(command.file_name);
-  } else if (command.name == "quit") {
-    return true;
+  } else if (strcmp(cmd.name, "rm") == 0) {
+    fs.rm(cmd.file_name);
+  } else if (strcmp(cmd.name, "stat") == 0) {
+    fs.stat(cmd.file_name);
   }
 }
-*/
-
-/*
-client
-read in command from CLI
-parse through it formating to how we expect to receive it
-string streaming is how it happens
-we need identifiers for splitting arguments, we can assume its ws
-requires a buffer to read in the response, atoil for length,
-
-server
-loop through recv buffer, consuming until we see \r\n, linear algo
-we can use a finite state machine to move between what were are doing
-and what is next
-the response message has a header and body
-header with code text, length in bytes (int), \r\n separates body
-everything is ended with \r\n
-stlmap for body, or integer codes that mean something
-
-
-OOP
-isolating processes into classes / functions
-
-itoa &YY atoi
-
-*/

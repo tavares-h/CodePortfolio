@@ -28,10 +28,9 @@ void Shell::mountNFS(string fs_loc) {
   auto [host_s, port_s] = parse_input(fs_loc);
   const char *host{host_s.c_str()};
   const char *port{port_s.c_str()};
-
   addrinfo conn{}, *servinfo, *p;
   memset(&conn, 0, sizeof(conn));
-  conn.ai_family = AF_UNSPEC;
+  conn.ai_family = AF_INET;
   conn.ai_socktype = SOCK_STREAM;
 
   if ((getaddrinfo(host, port, &conn, &servinfo)) != 0) {

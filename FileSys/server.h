@@ -2,8 +2,10 @@
 #define SERVER
 #include <cstddef>
 #include <string>
+#include <sys/types.h>
+#include "FileSys.h"
 
-void read_in(int sock, char* buf, size_t buf_size);
+ssize_t read_in(int sock, char* buf, size_t buf_size);
 
 struct Command
 {
@@ -13,6 +15,6 @@ struct Command
 };
 
 struct Command get_cmd(char* buf);
-void execute_cmd(struct Command cmd);
+void execute_cmd(struct Command cmd, FileSys &fs);
 
 #endif
