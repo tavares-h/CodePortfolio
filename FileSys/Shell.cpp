@@ -286,14 +286,14 @@ Shell::Command Shell::parse_command(string command_str) {
 }
 
 // helper funcs
-pair<string, string> input_parse(string &fs_loc) {
+pair<string, string> Shell::parse_input(string &fs_loc) {
   size_t col = fs_loc.find(':');
   string host_s = fs_loc.substr(0, col);
   string port_s = fs_loc.substr(col + 1);
   return {host_s, port_s};
 }
 
-void write_out(int sock, string cmd) {
+void Shell::write_out(int sock, string cmd) {
   char *buf = (char *)malloc(sizeof(cmd) + 1);
   strcpy(buf, cmd.c_str());
   size_t buf_size = sizeof(buf);
@@ -326,3 +326,6 @@ void write_out(int sock, char *buf, size_t buf_size) {
   }
 }
 */
+
+
+// 10.176.28.237
