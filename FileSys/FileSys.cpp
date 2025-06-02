@@ -56,7 +56,7 @@ void FileSys::mkdir(const char *name) {
 
   // update parent directory -- 2 do this second/last, as if 1 & 2 does not
   // occur atomically will prevent corrupted files
-  root.num_entries++;
+  root.num_entries++; // is this a reference?
   int i = 0;
   int set = 0;
   do {
@@ -70,6 +70,7 @@ void FileSys::mkdir(const char *name) {
   } while (set == 0); // Fixed: assignment to comparison
   copy_name(root.dir_entries[i - 1].name,
             name); // copy name of new directory to parent
+  bfs.write_block(curr_dir, (void *)&root);
 }
 
 // switch to a directory
@@ -141,10 +142,11 @@ void FileSys::rmdir(const char *name) {
 // list the contents of current directory
 void FileSys::ls() {
   struct dirblock_t root = return_root(); // Fixed: missing variable name
-	cout<<"before printing in LS\n";
   // do not print "home" directory
-  for (int i = 1; i < root.num_entries; i++) {
+	cout<<"before now";
+  for (int i = 0; i <= root.num_entries; i++) {
     printf("%s ", root.dir_entries[i].name);
+    cout << root.dir_entries[i].name << " ";
   }
 }
 
@@ -189,6 +191,7 @@ void FileSys::create(const char *name) {
   } while (set == 0); // Fixed: assignment to comparison
   copy_name(root.dir_entries[i - 1].name,
             name); // copy name of new file to parent directory
+  bfs.write_block(curr_dir, (void *)&root);
 }
 
 // append data to a data file
@@ -236,7 +239,7 @@ void FileSys::stat(const char *name) {}
 // HELPER FUNCTIONS (optional)
 
 // returns the dirblock_t structure corresponding to the current parent
-// directory
+// directory, copying the format of the first directory
 struct dirblock_t FileSys::return_root() {
   struct dirblock_t root;
   bfs.read_block(curr_dir, (void *)&root); // Fixed: pointer usage
@@ -247,7 +250,7 @@ struct dirblock_t FileSys::return_root() {
 // terminated and null terminates the output
 void FileSys::copy_name(char output[MAX_FNAME_SIZE + 1], const char *input) {
   int i = 0;
-  while (i < MAX_FNAME_SIZE && input[i] != '\0') {
+  while (input[i] != '\0') {
     output[i] = input[i];
     i++;
   }

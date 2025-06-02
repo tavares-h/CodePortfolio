@@ -95,7 +95,7 @@ void Shell::rmdir_rpc(string dname) {
 // Remote procedure call on ls
 void Shell::ls_rpc() {
   // to implement
-	write_out(cs_sock, "ls");
+  write_out(cs_sock, "ls");
 }
 
 // Remote procedure call on create
@@ -294,17 +294,18 @@ pair<string, string> Shell::parse_input(string &fs_loc) {
 }
 
 void Shell::write_out(int sock, string cmd) {
-  char *buf = (char *)malloc(sizeof(cmd) + 1);
+  cout << "Writing out\n";
+  char *buf = (char *)malloc(cmd.length() + 1);
   strcpy(buf, cmd.c_str());
-  size_t buf_size = sizeof(buf);
+  size_t buf_size = strlen(buf) + 1;
   size_t bytes_sent{0};
-  int n;
+  ssize_t n{0};
+
   while (bytes_sent < buf_size) {
-    if ((n = send(sock, buf + bytes_sent, buf_size - bytes_sent, 0)) == -1) {
-      perror("sent");
+    n = send(sock, buf + bytes_sent, buf_size - bytes_sent, 0);
+    if (n <= 0) {
+      perror("send");
       break;
-    } else if (n == 0) {
-      perror("connection closed");
     }
     bytes_sent += n;
   }

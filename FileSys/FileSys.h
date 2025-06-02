@@ -70,7 +70,7 @@ private:
 
   bool check_dir();
 
-	int get_size(const char* data);   
+  int get_size(const char *data);
 };
 
 #endif

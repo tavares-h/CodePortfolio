@@ -92,7 +92,6 @@ int main(int argc, char *argv[]) {
       free(cmd.append_data);
     }
   }
-  cout << "after while loop\n";
 
   // close the listening socket
   close(new_sock);
@@ -105,9 +104,10 @@ int main(int argc, char *argv[]) {
 
 ssize_t read_in(int sock, char *buf, size_t buf_size) {
   size_t bytes_recv{0};
-  int n;
-  while (bytes_recv < buf_size - 1) {
-    if ((n = recv(sock, buf + bytes_recv, buf_size - bytes_recv - 1, 0)) <= 0) {
+  ssize_t n{0};
+  bool finished = false;
+  while (!finished) {
+    if ((n = recv(sock, buf, buf_size, 0)) <= 0) {
       perror("receive");
       return -1;
     } else if (n == 0) {
@@ -115,8 +115,10 @@ ssize_t read_in(int sock, char *buf, size_t buf_size) {
       break;
     }
     bytes_recv += n;
-    if (buf[bytes_recv] == '\0') {
-      break;
+    for (int i = bytes_recv - n; i < bytes_recv; i++) {
+      if (buf[i] == '\0') {
+        finished = true;
+      }
     }
   }
   buf[bytes_recv] = '\0';
@@ -143,10 +145,8 @@ bool execute_cmd(struct Command cmd, FileSys &fs) {
   }
 
   if (strcmp(cmd.name, "mkdir") == 0) {
-		cout<<"mkdir command\n";
     fs.mkdir(cmd.file_name);
   } else if (strcmp(cmd.name, "ls") == 0) {
-		cout<<"ls commandn\n";
     fs.ls();
   } else if (strcmp(cmd.name, "rmdir") == 0) {
     fs.rmdir(cmd.file_name);
