@@ -15,6 +15,6 @@ struct Command
 };
 
 struct Command get_cmd(char* buf);
-void execute_cmd(struct Command cmd, FileSys &fs);
+bool execute_cmd(struct Command cmd, FileSys &fs);
 
 #endif

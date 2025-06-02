@@ -88,13 +88,14 @@ void Shell::home_rpc() {
 // Remote procedure call on rmdir
 void Shell::rmdir_rpc(string dname) {
   // to implement
-	string cmd = "rmdir " + dname;
-	write_out(cs_sock, cmd);
+  string cmd = "rmdir " + dname;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on ls
 void Shell::ls_rpc() {
   // to implement
+	write_out(cs_sock, "ls");
 }
 
 // Remote procedure call on create
@@ -307,24 +308,5 @@ void Shell::write_out(int sock, string cmd) {
     }
     bytes_sent += n;
   }
-	free(buf);
+  free(buf);
 }
-/*
-void write_out(int sock, char *buf, size_t buf_size) {
-  size_t bytes_sent{0};
-  int n;
-        buf[buf_size] = '\0';
-  while (bytes_sent < buf_size) {
-    if ((n = send(sock, buf + bytes_sent, buf_size - bytes_sent, 0)) == -1) {
-      perror("receive");
-      break;
-    } else if (n == 0) {
-      perror("connection closed");
-    }
-    bytes_sent += n;
-  }
-}
-*/
-
-
-// 10.176.28.237

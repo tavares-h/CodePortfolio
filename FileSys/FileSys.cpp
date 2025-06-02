@@ -141,6 +141,7 @@ void FileSys::rmdir(const char *name) {
 // list the contents of current directory
 void FileSys::ls() {
   struct dirblock_t root = return_root(); // Fixed: missing variable name
+	cout<<"before printing in LS\n";
   // do not print "home" directory
   for (int i = 1; i < root.num_entries; i++) {
     printf("%s ", root.dir_entries[i].name);

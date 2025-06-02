@@ -28,8 +28,7 @@ int main(int argc, char *argv[]) {
   conn.ai_socktype = SOCK_STREAM;
   int status, sock;
 
-  if ((status = getaddrinfo(nullptr, argv[1], &conn, &servinfo)) !=
-      0) {
+  if ((status = getaddrinfo(nullptr, argv[1], &conn, &servinfo)) != 0) {
     cerr << "status" << endl;
     exit(-1);
   }
@@ -52,31 +51,27 @@ int main(int argc, char *argv[]) {
   }
 
   // mount the file system
-	// assume that sock is the new socket created
+  // assume that sock is the new socket created
   //  for a TCP connection between the client and the server.
 
   // loop: get the command from the client and invoke the file
   // system operation which returns the results or error messages back to
   // the client until the client closes the TCP connection.
-
   size_t buf_size = 1024;
-  char *buf = (char *) malloc(buf_size);
+  char *buf = (char *)malloc(buf_size);
   Command cmd;
 
-	sockaddr_storage client_addr;
+  sockaddr_storage client_addr;
   socklen_t addr_len = sizeof(client_addr);
-	int new_sock = accept(sock, (sockaddr*) &client_addr, &addr_len);
+  int new_sock = accept(sock, (sockaddr *)&client_addr, &addr_len);
+  /*
+  if (new_sock < 0) {
+          perror("accept");
+  }*/
+  FileSys fs;
+  fs.mount(new_sock);
 
-	
-	if (new_sock < 0) {
-		perror("accept");
-		exit(EXIT_FAILURE);
-	}
-
-	FileSys fs;
-	fs.mount(new_sock);
-	
-	size_t byte_recv {0};
+  size_t byte_recv{0};
   bool finished = false;
   while (!finished) {
     memset(buf, 0, buf_size);
@@ -84,20 +79,27 @@ int main(int argc, char *argv[]) {
       finished = true;
     } else {
       cmd = get_cmd(buf);
-      execute_cmd(cmd, fs);
+      finished = execute_cmd(cmd, fs);
     }
 
-    if (cmd.name) {free(cmd.name);}
-    if (cmd.file_name) {free(cmd.file_name);}
-		if (cmd.append_data) {free(cmd.append_data);}
+    if (cmd.name) {
+      free(cmd.name);
+    }
+    if (cmd.file_name) {
+      free(cmd.file_name);
+    }
+    if (cmd.append_data) {
+      free(cmd.append_data);
+    }
   }
+  cout << "after while loop\n";
 
   // close the listening socket
   close(new_sock);
   free(buf);
   // unmout the file system
   fs.unmount();
-	close(sock);
+  close(sock);
   return 0;
 }
 
@@ -110,7 +112,7 @@ ssize_t read_in(int sock, char *buf, size_t buf_size) {
       return -1;
     } else if (n == 0) {
       perror("connection closed");
-			break;
+      break;
     }
     bytes_recv += n;
     if (buf[bytes_recv] == '\0') {
@@ -124,25 +126,27 @@ ssize_t read_in(int sock, char *buf, size_t buf_size) {
 struct Command get_cmd(char *buf) {
   Command temp;
   char *buf_temp = strdup(buf);
-  temp.name = strdup(strtok(buf_temp, " "));
-  temp.file_name = strdup(strtok(nullptr, " "));
-  temp.append_data = strdup(strtok(nullptr, " "));
-  // check what the first arg is
-  // depending on what the first are is i go to a certain command
-  // depending on the command i may need to send arguments
+  char *token = strtok(buf_temp, " ");
+  temp.name = token ? strdup(token) : nullptr;
+  token = strtok(nullptr, " ");
+  temp.file_name = token ? strdup(token) : nullptr;
+  token = strtok(nullptr, " ");
+  temp.append_data = token ? strdup(token) : nullptr;
   free(buf_temp);
+
   return temp;
 }
-
-void execute_cmd(struct Command cmd, FileSys &fs) {
+bool execute_cmd(struct Command cmd, FileSys &fs) {
   if (cmd.name == nullptr) {
     perror("command");
-    return;
+    return true;
   }
 
   if (strcmp(cmd.name, "mkdir") == 0) {
+		cout<<"mkdir command\n";
     fs.mkdir(cmd.file_name);
   } else if (strcmp(cmd.name, "ls") == 0) {
+		cout<<"ls commandn\n";
     fs.ls();
   } else if (strcmp(cmd.name, "rmdir") == 0) {
     fs.rmdir(cmd.file_name);
@@ -163,5 +167,8 @@ void execute_cmd(struct Command cmd, FileSys &fs) {
     fs.rm(cmd.file_name);
   } else if (strcmp(cmd.name, "stat") == 0) {
     fs.stat(cmd.file_name);
+  } else if (strcmp(cmd.name, "quit") == 0) {
+    return true;
   }
+  return false;
 }
