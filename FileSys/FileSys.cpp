@@ -143,10 +143,8 @@ void FileSys::rmdir(const char *name) {
 void FileSys::ls() {
   struct dirblock_t root = return_root(); // Fixed: missing variable name
   // do not print "home" directory
-	cout<<"before now";
-  for (int i = 0; i <= root.num_entries; i++) {
-    printf("%s ", root.dir_entries[i].name);
-    cout << root.dir_entries[i].name << " ";
+  for (int i = 0; i < root.num_entries; i++) {
+    cout << root.dir_entries[i].name << "\n";
   }
 }
 
