@@ -58,6 +58,11 @@ private:
   // Additional private variables and Helper functions - if desired
   struct dirblock_t return_root();
 
+  // Additional private variables and Helper functions - if desired
+  struct dirblock_t* return_root_ptr();
+
+  int blockspace();
+
   void copy_name(char output[MAX_FNAME_SIZE + 1], const char *input);
 
   bool is_dir(short block_num);
@@ -66,11 +71,11 @@ private:
 
   bool size_check(const char *name);
 
-  bool compare_name(const char name1[MAX_FNAME_SIZE + 1], const char *name2);
+  bool compare_name(const char* name1, const char *name2);
 
   bool check_dir();
 
-  int get_size(const char *data);
+	int get_size(const char* data);   
 };
 
 #endif

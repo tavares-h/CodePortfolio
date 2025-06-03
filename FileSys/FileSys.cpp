@@ -1,6 +1,6 @@
 // CPSC 3500: File System
 // Implements the file system commands that are available to the shell.
-
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <unistd.h>
@@ -199,15 +199,13 @@ void FileSys::append(const char *name, const char *data) {
   struct dirblock_t root = return_root();
   int i = 1; // skip "home" directory
   do {
-    if (compare_name(root.dir_entries[i].name,
-                     name)) { // Fixed: missing parentheses
+    if (compare_name(root.dir_entries[i].name, name)) {
       // if names match, confirm file is an inode
       if (is_dir(root.dir_entries[i].block_num))
         return; // File is a directory error
       // read inode info
       struct inode_t inode;
-      bfs.read_block(root.dir_entries[i].block_num,
-                     (void *)&inode); // Fixed: pointer usage
+      bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
       // check current inode for size allowed (in bytes) (((128 - 8)/2) max
       // blocks * 128 bytes/block = 7680 bytes/inode MAX
       int maxsize = 7680 - inode.size;
@@ -215,25 +213,195 @@ void FileSys::append(const char *name, const char *data) {
       if (remaining > maxsize)
         return; // Appended exceeds max size error
       // find available # of bytes in last datablock
-      int fill = inode.size % 128;
+      int fill = 128 - (inode.size % 128);
+      // check if blocks are available on disk
+      int blocksavailable = blockspace();
+      int blockstoadd = ceil((remaining - fill) / 128);
+      if (blockstoadd > blocksavailable)
+        return; // return Disk full error
+      int offset = 0;
       // append to last datablock if possible
+      if (fill != 0) {
+        // get Last data block from inode
+        struct datablock_t lastblock;
+        bfs.read_block(inode.blocks[inode.size / 128], (void *)&lastblock);
+        // start lastblock array by offset (fill), append new data and decrement
+        // remaining
+        for (int i = fill; i < 128; i++) {
+          lastblock.data[i] =
+              data[i - fill]; // get empty data block and place new data
+          remaining--;
+          offset++;
+          inode.size++;
+        }
+      }
       // get new data block and fill (loop while remaining)
+      while (remaining) {
+        // get new block
+        struct datablock_t newblock;
+        short block_num = bfs.get_free_block();
+        // place data from source into block (include offset)
+        for (int i = 0; i < 128; i++) {
+          if (remaining == 0)
+            break; // break when complete
+          newblock.data[i] = data[i + offset];
+          remaining--;
+          offset++;
+          inode.size++;
+        }
+        // write newblock to disk
+        bfs.write_block(block_num, (void *)&newblock);
+        // update inode with data block#
+        inode.blocks[inode.size / 128] = block_num;
+      }
+      // update inode to disk
+      bfs.write_block(root.dir_entries[i].block_num, (void *)&inode);
+      return; // successful
     }
-  } while (i++ < root.num_entries); // Fixed: do-while syntax
+  } while (i++ < root.num_entries);
 }
 
 // display the contents of a data file
-void FileSys::cat(const char *name) {}
+void FileSys::cat(const char *name) {
+  if (!file_exists(name))
+    return; // FDNE error
+  struct dirblock_t root = return_root();
+  int i = 1; // skip "home" directory
+  do {
+    if (compare_name(root.dir_entries[i].name, name)) {
+      // if names match, confirm file is an inode
+      if (is_dir(root.dir_entries[i].block_num))
+        return; // File is a directory error
+      // read inode info
+      struct inode_t inode;
+      bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
+
+      int remaining = inode.size;
+      // read content from each data block attached to inode (remaining to break
+      // loop)
+      while (remaining) {
+        // loop through each block inside inode
+        for (int i = 0; i < inode.size / 128; i++) {
+          struct datablock_t block;
+          bfs.read_block(inode.blocks[i], (void *)&block);
+          // loop through each element inside block and print
+          for (int k = 0; k < 128; k++) {
+            if (!remaining)
+              break;
+            printf("%d", block.data[k]);
+            remaining--;
+          }
+        }
+      }
+    }
+  } while (i++ < root.num_entries);
+}
 
 // display the first N bytes of the file
-void FileSys::head(const char *name, unsigned int n) {}
+void FileSys::head(const char *name, unsigned int n) {
+  if (!file_exists(name))
+    return; // FDNE error
+  struct dirblock_t root = return_root();
+  int i = 1; // skip "home" directory
+  do {
+    if (compare_name(root.dir_entries[i].name, name)) {
+      // if names match, confirm file is an inode
+      if (is_dir(root.dir_entries[i].block_num))
+        return; // File is a directory error
+      // read inode info
+      struct inode_t inode;
+      bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
+
+      // set bytes to write to n or inode size (if n>size)
+      int remaining = n;
+      if (n > inode.size)
+        remaining = inode.size;
+      // read content from each data block attached to inode (remaining to break
+      // loop)
+      while (remaining) {
+        // loop through each block inside inode
+        for (int i = 0; i < inode.size / 128; i++) {
+          struct datablock_t block;
+          bfs.read_block(inode.blocks[i], (void *)&block);
+          // loop through each element inside block and print
+          for (int k = 0; k < 128; k++) {
+            if (!remaining)
+              break;
+            printf("%d", block.data[k]);
+            remaining--;
+          }
+        }
+      }
+    }
+  } while (i++ < root.num_entries);
+}
 
 // delete a data file
-void FileSys::rm(const char *name) {}
+void FileSys::rm(const char *name) {
+  if (!file_exists(name))
+    return; // FDNE error
+  struct dirblock_t root = return_root();
+  int i = 1; // skip "home" directory
+  do {
+    if (compare_name(root.dir_entries[i].name, name)) {
+      // if names match, confirm file is an inode
+      if (is_dir(root.dir_entries[i].block_num))
+        return; // File is a directory error
+      // read inode info
+      struct inode_t inode;
+      bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
+      // calculate #datablocks in inode
+      int blocks = inode.size / 128;
+      // reclaim datablocks
+      for (int i = 0; i <= blocks; i++) {
+        bfs.reclaim_block(inode.blocks[i]);
+      }
+      // reclaim inode
+      bfs.reclaim_block(root.dir_entries[i].block_num);
+      // update root directory
+      root.dir_entries[i].block_num = 0;
+      // overwrite name to avoid corruption/stale names
+      int k = 0;
+      while (root.dir_entries[i].name[k] != '\0') {
+        root.dir_entries[i].name[k] = '\0';
+        k++;
+      }
+      // write updated root to memory
+      bfs.write_block(curr_dir, (void *)&root);
+      return; // return successful
+    }
+  } while (i++ < root.num_entries);
+}
 
 // display stats about file or directory
-void FileSys::stat(const char *name) {}
+void FileSys::stat(const char *name) {
+  if (!file_exists(name))
+    return; // FDNE error
+  struct dirblock_t root = return_root();
+  int i = 1; // skip "home" directory
+  do {
+    if (compare_name(root.dir_entries[i].name, name)) {
+      // if names match determine whether it is a directory or inode
+      // assume inode init
+      struct inode_t inode;
+      bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
+      if (inode.magic == INODE_MAGIC_NUM) { // if inode
+        printf("Inode block: %d \n", root.dir_entries[i].block_num);
+        printf("Bytes in file: %d \n", inode.size);
 
+        printf("Number of blocks: %ld\n",
+               (long)ceil(inode.size / 128.0)); // if inode.size is long or int
+        printf("First block: %d\n", inode.blocks[0]); // if blocks[0] is an int
+
+      } else {                                        // if directory
+        struct dirblock_t block;
+        bfs.read_block(root.dir_entries[i].block_num, (void *)&block);
+        printf("Directory name: %s \n", root.dir_entries[i].name);
+        printf("Directory block: %d \n", root.dir_entries[i].block_num);
+      }
+    }
+  } while (i++ < root.num_entries);
+}
 // HELPER FUNCTIONS (optional)
 
 // returns the dirblock_t structure corresponding to the current parent
@@ -329,4 +497,29 @@ bool FileSys::check_dir() {
   if (block.num_entries == MAX_DIR_ENTRIES) // Fixed: assignment to comparison
     return true;
   return false;
+}
+
+int FileSys::blockspace() {
+  int output = 0;
+  // get superblock
+  struct superblock_t super_block;
+  bfs.read_block(0, (void *)&super_block);
+
+  // look for available blocks
+  for (int byte = 0; byte < BLOCK_SIZE; byte++) {
+
+    // check to see if byte has available slot
+    if (super_block.bitmap[byte] != 0xFF) {
+
+      // loop to check each bit
+      for (int bit = 0; bit < 8; bit++) {
+        int mask = 1 << bit;
+        if (mask & ~super_block.bitmap[byte]) {
+          // Available block is found: increment available block space
+          output++;
+        }
+      }
+    }
+  }
+  return output;
 }

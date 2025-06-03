@@ -1,5 +1,8 @@
 // CPSC 3500: Shell
 // Implements a basic shell (command line interface) for the file system
+#include <cstdio>
+#include <stdio.h>
+#include <stdlib.h>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -7,6 +10,7 @@
 #include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
@@ -101,31 +105,44 @@ void Shell::ls_rpc() {
 // Remote procedure call on create
 void Shell::create_rpc(string fname) {
   // to implement
+	string cmd = "create " + fname;
+	write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on append
 void Shell::append_rpc(string fname, string data) {
   // to implement
+	string cmd = "append " + fname + " " + data;
+	write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on cat
 void Shell::cat_rpc(string fname) {
   // to implement
+	string cmd = "cat " + fname;
+	write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on head
 void Shell::head_rpc(string fname, int n) {
   // to implement
+	string intr = to_string(n);
+	string cmd = "head " + fname + " " + intr;
+	write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on rm
 void Shell::rm_rpc(string fname) {
   // to implement
+	string cmd = "rm " + fname;
+	write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on stat
 void Shell::stat_rpc(string fname) {
   // to implement
+	string cmd = "stat " + fname;
+	write_out(cs_sock, cmd);
 }
 
 // Executes the shell until the user quits.
@@ -146,7 +163,6 @@ void Shell::run() {
     // execute the command
     user_quit = execute_command(command_str);
   }
-
   // unmount the file system
   unmountNFS();
 }
@@ -309,5 +325,6 @@ void Shell::write_out(int sock, string cmd) {
     }
     bytes_sent += n;
   }
+  cout << buf << " at write_out function\n";
   free(buf);
 }
