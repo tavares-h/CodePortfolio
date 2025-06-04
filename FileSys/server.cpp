@@ -153,7 +153,6 @@ bool execute_cmd(struct Command cmd, FileSys &fs) {
   } else if (strcmp(cmd.name, "create") == 0) {
     fs.create(cmd.file_name);
   } else if (strcmp(cmd.name, "append") == 0) {
-    cout << cmd.name << " " << cmd.file_name << " " << cmd.append_data << '\n';
     fs.append(cmd.file_name, cmd.append_data);
 
   } else if (strcmp(cmd.name, "cd") == 0) {
@@ -163,11 +162,10 @@ bool execute_cmd(struct Command cmd, FileSys &fs) {
     fs.cat(cmd.file_name);
   } else if (strcmp(cmd.name, "head") == 0) {
     if (cmd.append_data) {
-      int n = atoi(cmd.append_data);
+      unsigned int n = atoi(cmd.append_data);
       fs.head(cmd.file_name, n);
     }
   } else if (strcmp(cmd.name, "home") == 0) {
-    cout << "about to call home function\n";
     fs.home();
   } else if (strcmp(cmd.name, "rm") == 0) {
     fs.rm(cmd.file_name);

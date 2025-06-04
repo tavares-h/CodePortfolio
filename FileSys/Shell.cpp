@@ -1,9 +1,7 @@
 // CPSC 3500: Shell
 // Implements a basic shell (command line interface) for the file system
-#include <cstdio>
-#include <stdio.h>
-#include <stdlib.h>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -12,6 +10,8 @@
 #include <netinet/in.h>
 #include <numeric>
 #include <sstream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -105,44 +105,44 @@ void Shell::ls_rpc() {
 // Remote procedure call on create
 void Shell::create_rpc(string fname) {
   // to implement
-	string cmd = "create " + fname;
-	write_out(cs_sock, cmd);
+  string cmd = "create " + fname;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on append
 void Shell::append_rpc(string fname, string data) {
   // to implement
-	string cmd = "append " + fname + " " + data;
-	write_out(cs_sock, cmd);
+  string cmd = "append " + fname + " " + data;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on cat
 void Shell::cat_rpc(string fname) {
   // to implement
-	string cmd = "cat " + fname;
-	write_out(cs_sock, cmd);
+  string cmd = "cat " + fname;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on head
 void Shell::head_rpc(string fname, int n) {
   // to implement
-	string intr = to_string(n);
-	string cmd = "head " + fname + " " + intr;
-	write_out(cs_sock, cmd);
+  string intr = to_string(n);
+  string cmd = "head " + fname + " " + intr;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on rm
 void Shell::rm_rpc(string fname) {
   // to implement
-	string cmd = "rm " + fname;
-	write_out(cs_sock, cmd);
+  string cmd = "rm " + fname;
+  write_out(cs_sock, cmd);
 }
 
 // Remote procedure call on stat
 void Shell::stat_rpc(string fname) {
   // to implement
-	string cmd = "stat " + fname;
-	write_out(cs_sock, cmd);
+  string cmd = "stat " + fname;
+  write_out(cs_sock, cmd);
 }
 
 // Executes the shell until the user quits.
@@ -310,7 +310,6 @@ pair<string, string> Shell::parse_input(string &fs_loc) {
 }
 
 void Shell::write_out(int sock, string cmd) {
-  cout << "Writing out\n";
   char *buf = (char *)malloc(cmd.length() + 1);
   strcpy(buf, cmd.c_str());
   size_t buf_size = strlen(buf) + 1;
@@ -325,6 +324,5 @@ void Shell::write_out(int sock, string cmd) {
     }
     bytes_sent += n;
   }
-  cout << buf << " at write_out function\n";
   free(buf);
 }

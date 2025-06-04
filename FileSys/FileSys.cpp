@@ -32,7 +32,6 @@ void FileSys::mkdir(const char *name) {
     return; // File name exceeds limit error
   if (check_dir())
     return; // Directory is Full error
-  cout << name << " received at mkdir FileSys\n";
   struct dirblock_t root = return_root();
   struct dirblock_t block;
   block.magic = DIR_MAGIC_NUM;
@@ -58,13 +57,6 @@ void FileSys::mkdir(const char *name) {
     i++;
   } while (set == 0);
   bfs.write_block(curr_dir, (void *)&root);
-  struct dirblock_t verify;
-  bfs.read_block(curr_dir, (char *)&verify);
-  cout << "After mkdir " << name << ", num_entries: " << verify.num_entries
-       << endl;
-  for (int j = 0; j < verify.num_entries; j++) {
-    cout << "Entry " << j << ": " << verify.dir_entries[j].name << endl;
-  }
 }
 // switch to a directory
 void FileSys::cd(const char *name) {
@@ -78,7 +70,7 @@ void FileSys::cd(const char *name) {
                      root.dir_entries[i].name)) { // Fixed: missing parentheses
       bfs.read_block(root.dir_entries[i].block_num, (void *)&child);
       if (child.magic != DIR_MAGIC_NUM) // Fixed: pointer dereference
-        return;                          // Not a directory error
+        return;                         // Not a directory error
       // assume child is a directory and change curr_dir to match
       curr_dir = root.dir_entries[i].block_num;
       set = 1;
@@ -93,10 +85,8 @@ void FileSys::cd(const char *name) {
 void FileSys::home() {
   // go to num block 1
   struct dirblock_t root = return_root();
-  cout << "before, current dir: " << curr_dir << " and " << root.dir_entries[0].block_num;
-  curr_dir = 1; //root.dir_entries[0].block_num;
-	cout << "after, current dir: " << curr_dir << " and " << root.dir_entries[0].block_num;
-  return; // assume always successful
+  curr_dir = 1; // root.dir_entries[0].block_num;
+  return;       // assume always successful
 }
 
 // remove a directory
@@ -119,15 +109,17 @@ void FileSys::rmdir(const char *name) {
       // check if directory is empty
       if (child.num_entries > 1)
         return; // Directory is not empty error
-      // free memory first, then delete entry from parent
+                // free memory first, then delete entry from parent
       bfs.reclaim_block(root.dir_entries[i].block_num);
       root.dir_entries[i].block_num = 0;
+      root.num_entries--;
       // overwrite name to avoid corruption/stale names
       int k = 0;
       while (root.dir_entries[i].name[k] != '\0') {
         root.dir_entries[i].name[k] = '\0';
         k++;
       }
+      bfs.write_block(curr_dir, (void *)&root);
       return; // return successful
     }
   } while (i++ < root.num_entries); // Fixed: do-while syntax
@@ -138,6 +130,7 @@ void FileSys::rmdir(const char *name) {
 void FileSys::ls() {
   struct dirblock_t root = return_root(); // Fixed: missing variable name
   // do not print "home" directory
+	if (root.num_entries <= 0 ) {cout << "empty directory\n";}
   for (int i = 0; i < root.num_entries; i++) {
     cout << root.dir_entries[i].name << "\n";
   }
@@ -188,23 +181,16 @@ void FileSys::append(const char *name, const char *data) {
          << " doesn't exist, can't enter this: " << data << '\n';
     return;
   }
-  cout << "file name: " << name << " exists, entering this: " << data << '\n';
   struct dirblock_t root = return_root();
-  cout << "curr_dir in append: " << curr_dir << endl;
-  cout << "root.num_entries: " << root.num_entries
-       << ", MAX_DIR_ENTRIES: " << MAX_DIR_ENTRIES << endl;
   int i = 0;
   while (i < root.num_entries && i < MAX_DIR_ENTRIES) {
-    cout << "Entry " << i << ": name=" << root.dir_entries[i].name << endl;
     if (compare_name(root.dir_entries[i].name, name)) {
-			cout << "Comparing name\n";
       if (is_dir(root.dir_entries[i].block_num)) {
         cout << "Error: " << name << " is a directory\n";
         return;
       }
       struct inode_t inode;
       bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
-			cout << "read to block\n"; 
       int maxsize = 7680 - inode.size;
       int remaining = strlen(data);
       if (remaining > maxsize) {
@@ -212,7 +198,6 @@ void FileSys::append(const char *name, const char *data) {
         return;
       }
       int blocksavailable = blockspace();
-			cout << "Getting new block space\n";
       if (blocksavailable <= 0) {
         cout << "Error: No disk space available\n";
         return;
@@ -224,22 +209,24 @@ void FileSys::append(const char *name, const char *data) {
         return;
       }
       int offset = 0;
+      int initial_size = inode.size; // Track initial size for block index
       if (fill != 0 && inode.size > 0) {
         struct datablock_t lastblock;
-        bfs.read_block(inode.blocks[inode.size / 128 - 1], (void *)&lastblock);
-				cout <<"read last block\n";
+        int last_block_idx = (inode.size - 1) / 128; // Correct index
+        cout << "Last block index: " << last_block_idx
+             << ", block_num: " << inode.blocks[last_block_idx] << endl;
+        bfs.read_block(inode.blocks[last_block_idx], (void *)&lastblock);
         for (int j = fill; j < 128 && remaining > 0; j++) {
           lastblock.data[j] = data[offset++];
           remaining--;
           inode.size++;
         }
-        bfs.write_block(inode.blocks[inode.size / 128 - 1], (void *)&lastblock);
-				cout << "writing block\n";
+        bfs.write_block(inode.blocks[last_block_idx], (void *)&lastblock);
       }
+      int current_block_idx = inode.size / 128; // Index for new blocks
       while (remaining > 0) {
         struct datablock_t newblock = {0};
         short block_num = bfs.get_free_block();
-				cout << "getting freeblock in loop\n"; 
         if (block_num == 0) {
           cout << "Error: No free block available\n";
           return;
@@ -250,16 +237,14 @@ void FileSys::append(const char *name, const char *data) {
           inode.size++;
         }
         bfs.write_block(block_num, (void *)&newblock);
-				cout << "wrote new block\n";
-        if (inode.size / 128 >= MAX_DATA_BLOCKS) {
+        if (current_block_idx >= MAX_DATA_BLOCKS) {
           cout << "Error: Exceeded max blocks for " << name << '\n';
           return;
         }
-        inode.blocks[inode.size / 128 - 1] = block_num;
+        inode.blocks[current_block_idx] = block_num;
+        current_block_idx++;
       }
-			cout << "about to write to file\n";
       bfs.write_block(root.dir_entries[i].block_num, (void *)&inode);
-      cout << "Successfully appended to " << name << '\n';
       return;
     }
     i++;
@@ -272,15 +257,12 @@ void FileSys::cat(const char *name) {
     cout << "file name doesn't exist\n";
     return; // FDNE error
   }
-  cout << "file name: " << name << " exists\n";
   struct dirblock_t root = return_root();
   cout << "curr_dir: " << curr_dir << ", root.num_entries: " << root.num_entries
        << ", MAX_DIR_ENTRIES: " << MAX_DIR_ENTRIES << endl;
   int i = 0; // Start at 0 to include all entries, adjust based on "home"
   bool found = false;
   do {
-    cout << "Checking entry " << i << ": name=" << root.dir_entries[i].name
-         << endl;
     if (compare_name(root.dir_entries[i].name, name)) {
       found = true;
       if (is_dir(root.dir_entries[i].block_num)) {
@@ -288,8 +270,6 @@ void FileSys::cat(const char *name) {
         return;
       }
       struct inode_t inode;
-      cout << "Reading inode from block " << root.dir_entries[i].block_num
-           << endl;
       bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
       cout << "inode.size: " << inode.size
            << ", first block: " << inode.blocks[0] << endl;
@@ -304,8 +284,6 @@ void FileSys::cat(const char *name) {
           return;
         }
         struct datablock_t block;
-        cout << "Reading data block " << j << " at block_num "
-             << inode.blocks[j] << endl;
         bfs.read_block(inode.blocks[j], (void *)&block);
         for (int k = 0; k < 128 && (j * 128 + k) < inode.size; k++) {
           cout << block.data[k];
@@ -344,16 +322,16 @@ void FileSys::head(const char *name, unsigned int n) {
         remaining = inode.size;
       // read content from each data block attached to inode (remaining to break
       // loop)
-      while (remaining) {
+      while (remaining > 0) {
         // loop through each block inside inode
         for (int i = 0; i < inode.size / 128; i++) {
           struct datablock_t block;
           bfs.read_block(inode.blocks[i], (void *)&block);
           // loop through each element inside block and print
           for (int k = 0; k < 128; k++) {
-            if (!remaining)
+            if (remaining <= 0)
               break;
-            printf("%d", block.data[k]);
+            cout << block.data[k];
             remaining--;
           }
         }
@@ -367,7 +345,7 @@ void FileSys::rm(const char *name) {
   if (!file_exists(name))
     return; // FDNE error
   struct dirblock_t root = return_root();
-  int i = 1; // skip "home" directory
+  int i = 0; // skip "home" directory
   do {
     if (compare_name(root.dir_entries[i].name, name)) {
       // if names match, confirm file is an inode
