@@ -2,11 +2,15 @@ g++ server.cpp FileSys.cpp BasicFileSys.cpp Disk.cpp -o server
 
 
 //// Each team member's name and contributions ////////////
-Team member #1: xxx
+Team member #1: Tavares
 Contributions:
+Socket Connection
+Routing Received Request to Corresponding Function
 
-Team member #2: xxx
+Team member #2: Chance
 Contributions:
+File System
+
 
 ...
 
@@ -16,16 +20,118 @@ Contributions:
 //// My own rating on the functionality ///////////////////
 Rating: A, B, C, D, or F?
 Explanation: 
+
+We think that we deserve a B, we achieved implementations for 8 out of 11 functions. Most of the functions have proper implementation with edge cases that result in unintended behavior. Additionally, we are lacking in response messages.
 ...
 
 
 
 
 //// Test cases ///////////////////////////////////////////
-Test case #1: mkdir abc
+Test case #0: ls
+Results:
+nothing is printed, the directory is empty
+
+Test case #1: mkdir dir1
+Results:
+
+Test case #2: mkdir dir2
+Results:
+
+Test case #3: cd dir1
+Results:
+
+dir2 "dir2" is created
+
+Test case #4: ls
+Results:
+
+Directories:
+dir1
+dir2
+
+Test case #5: append file1 hello_world
+Results:
+hello_world
+
+Test case #6: stat file1
+Results:
+
+Inode block: 2
+Bytes in file: 11
+Number of blocks: 1
+First block: 3
+
+Test case #7: ls
+Directories:
+file1
+
+Test case #8: cat file1
+Results:
+
+hello_world
+
+Test case #9: rm file2
+Results:
+
+nah, easy to fix tho
+come back
+
+Test case #10: cat file2
+Results:
+
+empty file so returns nothing
+
+Test case #11: create file1
+Results:
+
+no error response but file already exists so nothing happens
+
+Test case #11: create file2
+Results:
+
+creates file2
+
+Test case #12: rm file1
+Results:
+
+removes file1
+
+Test case #13: ls
+Results:
+Directories:
+file2
+
+Test case #14: home
+Results:
+sets curr_dir to 1
+
+Test case #15: ls
+Results:
+Directories:
+dir1
+dir2
+
+Test case #16: stat dir1
+Results:
+Directory name: dir1
+Directory block: 2
+
+Test case #17: rmdir dir3
 Results: 
 
+no error response but nothing to delete
 
-Test case #2: 
+Test case #18: rmdir dir1
+Results:
 
+no error response, but doesn't delete dir1
+
+Test case #19: rmdir dir2
+Results:
+deletes dir2
+
+Test case #20: ls
+Directories:
+dir1
 ...

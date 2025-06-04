@@ -158,7 +158,6 @@ bool execute_cmd(struct Command cmd, FileSys &fs) {
   } else if (strcmp(cmd.name, "cd") == 0) {
     fs.cd(cmd.file_name);
   } else if (strcmp(cmd.name, "cat") == 0) {
-    cout << cmd.name << " " << cmd.file_name << '\n';
     fs.cat(cmd.file_name);
   } else if (strcmp(cmd.name, "head") == 0) {
     if (cmd.append_data) {

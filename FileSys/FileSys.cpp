@@ -1,4 +1,4 @@
-// CPSC 3500: File System
+// CPSC 3500: File Sys
 // Implements the file system commands that are available to the shell.
 #include <cmath>
 #include <cstring>
@@ -95,15 +95,16 @@ void FileSys::rmdir(const char *name) {
   if (!file_exists(name))
     return; // FDNE error may be redundant on performance considering check at
             // bottom
-
   struct dirblock_t root = return_root();
   int i = 0; // do not let user delete "home" directory or when i=0
   do {
     if (compare_name(root.dir_entries[i].name,
                      name)) { // Fixed: missing parentheses
       // if names match, confirm file is directory
-      if (!is_dir(root.dir_entries[i].block_num))
+      if (!is_dir(root.dir_entries[i].block_num)) {
+				cout << name <<" is not a directory\n";
         return; // File is not a directory error
+			}
       struct dirblock_t child;
       bfs.read_block(root.dir_entries[i].block_num, (void *)&child);
       // check if directory is empty
@@ -129,11 +130,19 @@ void FileSys::rmdir(const char *name) {
 // list the contents of current directory
 void FileSys::ls() {
   struct dirblock_t root = return_root(); // Fixed: missing variable name
-  // do not print "home" directory
-	if (root.num_entries <= 0 ) {cout << "empty directory\n";}
-  for (int i = 0; i < root.num_entries; i++) {
-    cout << root.dir_entries[i].name << "\n";
+                                          // do not print "home" directory
+	cout << "Directories:\n"; 
+  int dir_count = 0;
+  if (root.num_entries <= 0) {
+    cout << "empty directory\n";
   }
+  for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
+    if (root.dir_entries[i].block_num != 0 && dir_count < root.num_entries) {
+      cout << root.dir_entries[i].name << '\n';
+      dir_count++;
+    }
+  }
+	cout << endl;
 }
 
 // create an empty data file
@@ -258,8 +267,6 @@ void FileSys::cat(const char *name) {
     return; // FDNE error
   }
   struct dirblock_t root = return_root();
-  cout << "curr_dir: " << curr_dir << ", root.num_entries: " << root.num_entries
-       << ", MAX_DIR_ENTRIES: " << MAX_DIR_ENTRIES << endl;
   int i = 0; // Start at 0 to include all entries, adjust based on "home"
   bool found = false;
   do {
@@ -271,8 +278,6 @@ void FileSys::cat(const char *name) {
       }
       struct inode_t inode;
       bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
-      cout << "inode.size: " << inode.size
-           << ", first block: " << inode.blocks[0] << endl;
       if (inode.size == 0) {
         cout << "File " << name << " is empty\n";
         return;
@@ -315,7 +320,6 @@ void FileSys::head(const char *name, unsigned int n) {
       // read inode info
       struct inode_t inode;
       bfs.read_block(root.dir_entries[i].block_num, (void *)&inode);
-
       // set bytes to write to n or inode size (if n>size)
       int remaining = n;
       if (n > inode.size)
@@ -324,9 +328,9 @@ void FileSys::head(const char *name, unsigned int n) {
       // loop)
       while (remaining > 0) {
         // loop through each block inside inode
-        for (int i = 0; i < inode.size / 128; i++) {
+        for (int j = 0; j < inode.size / 128; j++) {
           struct datablock_t block;
-          bfs.read_block(inode.blocks[i], (void *)&block);
+          bfs.read_block(inode.blocks[j], (void *)&block);
           // loop through each element inside block and print
           for (int k = 0; k < 128; k++) {
             if (remaining <= 0)
